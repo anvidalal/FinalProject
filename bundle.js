@@ -42,7 +42,7 @@
 /************************************************************************/
 /******/ ([
 /* 0 */
-/***/ function(module, exports, __webpack_require__) {
+/***/ (function(module, exports, __webpack_require__) {
 
 	'use strict';
 	
@@ -50,47 +50,20 @@
 	
 	var _framework2 = _interopRequireDefault(_framework);
 	
+	var _houseParser = __webpack_require__(8);
+	
+	var _houseParser2 = _interopRequireDefault(_houseParser);
+	
 	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 	
-	var THREE = __webpack_require__(6); // older modules are imported like this. You shouldn't have to worry about this much
+	var THREE = __webpack_require__(6);
 	
-	
-	var currTime = 0;
-	var mouse;
 	
 	var input = {
-	  amplitude: 40.0,
-	  mouse_interactivity: false
+	  layout: false,
+	  shapeGrammar: true
 	};
 	
-	var myMaterial = new THREE.ShaderMaterial({
-	  uniforms: {
-	    image: { // Check the Three.JS documentation for the different allowed types and values
-	      type: "t",
-	      value: THREE.ImageUtils.loadTexture('./colors.jpg')
-	    },
-	    time: {
-	      type: "float",
-	      value: currTime
-	    },
-	    persistence: {
-	      type: "float",
-	      value: 0.59
-	    },
-	    amplitude: {
-	      type: "float",
-	      value: 40.0
-	    },
-	    inclination: {
-	      type: "v3",
-	      value: new THREE.Vector3(0, 0, 0)
-	    }
-	  },
-	  vertexShader: __webpack_require__(8),
-	  fragmentShader: __webpack_require__(9)
-	});
-	
-	// called after the scene loads
 	function onLoad(framework) {
 	  var scene = framework.scene,
 	      camera = framework.camera,
@@ -98,82 +71,135 @@
 	      gui = framework.gui,
 	      stats = framework.stats;
 	
-	  // create geometry and add it to the scene
 	
-	  var geom_icosa = new THREE.IcosahedronBufferGeometry(10, 5);
-	  var myIcosa = new THREE.Mesh(geom_icosa, myMaterial);
-	  scene.add(myIcosa);
+	  lightsCamera(scene, camera);
+	  showShapeGrammar(scene, camera);
+	  showLayout(scene, camera);
 	
-	  // set camera position
-	  camera.position.set(15, 15, 90);
-	  camera.lookAt(new THREE.Vector3(0, 0, 0));
-	
-	  // edit params and listen to changes like this
-	  // more information here: https://workshop.chromeexperiments.com/examples/gui/#1--Basic-Usage
 	  gui.add(camera, 'fov', 0, 180).onChange(function (newVal) {
 	    camera.updateProjectionMatrix();
 	  });
 	
-	  // add a slider to let user change *radius* of icosahedron
-	  gui.add(myIcosa.geometry.parameters, 'radius', 0, 100).onChange(function (newVal) {
-	    var detail = myIcosa.geometry.parameters.detail;
-	    scene.remove(myIcosa);
-	    myIcosa = new THREE.Mesh(new THREE.IcosahedronBufferGeometry(newVal, detail), myMaterial);
-	    scene.add(myIcosa);
-	    renderer.render(scene, camera);
+	  gui.add(input, "shapeGrammar").onChange(function (newVal) {
+	    clearScene(scene, camera);
+	    showShapeGrammar(scene, camera);
+	    showLayout(scene, camera);
 	  });
 	
-	  // add a slider to let user change *detail* of icosahedron 
-	  gui.add(myIcosa.geometry.parameters, 'detail', 0, 8).step(1).onChange(function (newVal) {
-	    var radius = myIcosa.geometry.parameters.radius;
-	    scene.remove(myIcosa);
-	    myIcosa = new THREE.Mesh(new THREE.IcosahedronBufferGeometry(radius, newVal), myMaterial);
-	    scene.add(myIcosa);
-	    renderer.render(scene, camera);
-	  });
-	
-	  // add a slider to let user change *persistence* of noise 
-	  gui.add(input, 'amplitude', 0, 50).onChange(function (newVal) {
-	    myMaterial.uniforms.amplitude.value = input.amplitude;
-	    renderer.render(scene, camera);
-	  });
-	
-	  // add a checkbox to toggle mouse interactivity
-	  gui.add(input, "mouse_interactivity").onChange(function (newVal) {
-	    if (!newVal) {
-	      myMaterial.uniforms.inclination.value = new THREE.Vector3(0, 0, 0);
-	    }
-	  });
-	
-	  // change inclination based on mouse click position
-	  window.addEventListener('mousemove', function (event) {
-	
-	    if (input.mouse_interactivity) {
-	      // from http://stackoverflow.com/questions/13055214/mouse-canvas-x-y-to-three-js-world-x-y-z
-	      var vector = new THREE.Vector3(event.clientX / window.innerWidth * 2 - 1, -(event.clientY / window.innerHeight) * 2 + 1, 0.5);
-	      vector.unproject(camera);
-	      var dir = vector.sub(camera.position).normalize();
-	      var distance = -camera.position.z / dir.z;
-	      var pos = camera.position.clone().add(dir.multiplyScalar(distance));
-	
-	      myMaterial.uniforms.inclination.value = pos;
-	      renderer.render(scene, camera);
-	    }
+	  gui.add(input, "layout").onChange(function (newVal) {
+	    clearScene(scene, camera);
+	    showShapeGrammar(scene, camera);
+	    showLayout(scene, camera);
 	  });
 	}
 	
-	// called on frame updates
-	function onUpdate(framework) {
-	  currTime += 0.2;
-	  myMaterial.uniforms.time.value = currTime;
+	function clearScene(scene, camera) {
+	  while (scene.children.length > 0) {
+	    scene.remove(scene.children[0]);
+	  }
+	
+	  lightsCamera(scene, camera);
 	}
 	
-	// when the scene is done initializing, it will call onLoad, then on frame updates, call onUpdate
+	function lightsCamera(scene, camera) {
+	  camera.position.set(1, 100, 200);
+	  camera.lookAt(new THREE.Vector3(0, 0, 0));
+	
+	  var light = new THREE.AmbientLight(0x404040); // soft white light
+	  scene.add(light);
+	
+	  var directionalLight = new THREE.DirectionalLight(0xffffff, 1.0);
+	  directionalLight.position.set(75, 100, 0);
+	  scene.add(directionalLight);
+	}
+	
+	function showShapeGrammar(scene, camera) {
+	  if (input.shapeGrammar && !input.layout) {
+	    camera.position.set(1, 10, 10);
+	    camera.lookAt(new THREE.Vector3(0, 0, 0));
+	
+	    var position = new THREE.Vector3(0, 0, 0);
+	    var direction = new THREE.Vector3(0, 1, 0);
+	    var parser = new _houseParser2.default(position, direction, scene, 4, 10);
+	    parser.render();
+	  }
+	}
+	
+	function showLayout(scene, camera) {
+	  if (input.layout) {
+	    camera.position.set(1, 100, 200);
+	    camera.lookAt(new THREE.Vector3(0, 0, 0));
+	
+	    var height = 100;
+	    var radius = 50;
+	
+	    //speaker mid
+	    var spkMG = new THREE.CylinderGeometry(radius, radius, height, 32);
+	    var spkMM = new THREE.MeshLambertMaterial({ color: 0xa9a9a9 });
+	    var spkM = new THREE.Mesh(spkMG, spkMM);
+	    scene.add(spkM);
+	
+	    //speaker top
+	    var spkTG = new THREE.CylinderGeometry(2 * radius / 3, radius, height / 4, 32);
+	    var spkTM = new THREE.MeshLambertMaterial({ color: 0xa9a9a9 });
+	    var spkT = new THREE.Mesh(spkTG, spkTM);
+	    spkT.position.set(0, 10 * height / 16, 0);
+	    scene.add(spkT);
+	
+	    //speaker base
+	    var spkBG = new THREE.CylinderGeometry(radius, 2 * radius / 3, height / 4, 32);
+	    var spkBM = new THREE.MeshLambertMaterial({ color: 0xa9a9a9 });
+	    var spkB = new THREE.Mesh(spkBG, spkBM);
+	    spkB.position.set(0, -5 * height / 8, 0);
+	    scene.add(spkB);
+	
+	    for (var y = -(height / 2) + 5; y < height / 2; y += 5) {
+	      for (var x = 5 - radius; x < radius; x += 5) {
+	        var z = Math.sqrt(radius * radius - x * x);
+	        var dir = new THREE.Vector3(-x, y, -z);
+	        var dirO = new THREE.Vector3(-x, y, z);
+	
+	        var cg = new THREE.CylinderGeometry(2.5, 2.5, 2, 16);
+	        var m = new THREE.MeshLambertMaterial({ color: 0xffff00 });
+	        var cyl = new THREE.Mesh(cg, m);
+	
+	        cyl.position.set(x, y, z);
+	        cyl.lookAt(dir);
+	        cyl.rotateX(Math.PI / 2);
+	        scene.add(cyl);
+	
+	        var cg2 = new THREE.CylinderGeometry(2.5, 2.5, 2, 16);
+	        var cyl2 = new THREE.Mesh(cg2, m);
+	
+	        cyl2.position.set(x, y, -z);
+	        cyl2.lookAt(dirO);
+	        cyl2.rotateX(Math.PI / 2);
+	        scene.add(cyl2);
+	
+	        if (input.shapeGrammar) {
+	          var position = new THREE.Vector3(x, y, -z);
+	          var direction = dir.normalize();
+	          var parser = new _houseParser2.default(position, direction, scene, 4, 2.5);
+	
+	          var position2 = new THREE.Vector3(x, y, z);
+	          var direction2 = dirO.normalize();
+	          var parser2 = new _houseParser2.default(position2, direction2, scene, 4, 2.5);
+	
+	          parser.render();
+	          parser2.render();
+	        }
+	      }
+	    }
+	  }
+	}
+	
+	function onUpdate(framework) {}
+	
 	_framework2.default.init(onLoad, onUpdate);
 
-/***/ },
+/***/ }),
 /* 1 */
-/***/ function(module, exports, __webpack_require__) {
+/***/ (function(module, exports, __webpack_require__) {
 
 	'use strict';
 	
@@ -221,7 +247,7 @@
 	    var renderer = new THREE.WebGLRenderer({ antialias: true });
 	    renderer.setPixelRatio(window.devicePixelRatio);
 	    renderer.setSize(window.innerWidth, window.innerHeight);
-	    renderer.setClearColor(0x020202, 0);
+	    renderer.setClearColor(0xeeeeee, 1);
 	
 	    var controls = new OrbitControls(camera, renderer.domElement);
 	    controls.enableDamping = true;
@@ -265,9 +291,9 @@
 	var PI = exports.PI = 3.14159265;
 	var e = exports.e = 2.7181718;
 
-/***/ },
+/***/ }),
 /* 2 */
-/***/ function(module, exports) {
+/***/ (function(module, exports) {
 
 	// stats.js - http://github.com/mrdoob/stats.js
 	var Stats=function(){var l=Date.now(),m=l,g=0,n=Infinity,o=0,h=0,p=Infinity,q=0,r=0,s=0,f=document.createElement("div");f.id="stats";f.addEventListener("mousedown",function(b){b.preventDefault();t(++s%2)},!1);f.style.cssText="width:80px;opacity:0.9;cursor:pointer";var a=document.createElement("div");a.id="fps";a.style.cssText="padding:0 0 3px 3px;text-align:left;background-color:#002";f.appendChild(a);var i=document.createElement("div");i.id="fpsText";i.style.cssText="color:#0ff;font-family:Helvetica,Arial,sans-serif;font-size:9px;font-weight:bold;line-height:15px";
@@ -277,16 +303,16 @@
 	a+"px",m=b,r=0);return b},update:function(){l=this.end()}}};"object"===typeof module&&(module.exports=Stats);
 
 
-/***/ },
+/***/ }),
 /* 3 */
-/***/ function(module, exports, __webpack_require__) {
+/***/ (function(module, exports, __webpack_require__) {
 
 	module.exports = __webpack_require__(4)
 	module.exports.color = __webpack_require__(5)
 
-/***/ },
+/***/ }),
 /* 4 */
-/***/ function(module, exports) {
+/***/ (function(module, exports) {
 
 	/**
 	 * dat-gui JavaScript Controller Library
@@ -3949,9 +3975,9 @@
 	dat.dom.dom,
 	dat.utils.common);
 
-/***/ },
+/***/ }),
 /* 5 */
-/***/ function(module, exports) {
+/***/ (function(module, exports) {
 
 	/**
 	 * dat-gui JavaScript Controller Library
@@ -4709,9 +4735,9 @@
 	dat.color.toString,
 	dat.utils.common);
 
-/***/ },
+/***/ }),
 /* 6 */
-/***/ function(module, exports, __webpack_require__) {
+/***/ (function(module, exports, __webpack_require__) {
 
 	(function (global, factory) {
 		 true ? factory(exports) :
@@ -47012,9 +47038,9 @@
 	})));
 
 
-/***/ },
+/***/ }),
 /* 7 */
-/***/ function(module, exports) {
+/***/ (function(module, exports) {
 
 	module.exports = function( THREE ) {
 		/**
@@ -48038,18 +48064,351 @@
 	};
 
 
-/***/ },
+/***/ }),
 /* 8 */
-/***/ function(module, exports) {
+/***/ (function(module, exports, __webpack_require__) {
 
-	module.exports = "varying float noise;\nuniform float amplitude;\nuniform float time;\nuniform float persistence;\nuniform vec3 inclination;\nfloat M_PI = 3.14159265359;\n\nfloat noise_gen(vec3 pos)\n{\n  return fract(sin(dot(pos, vec3(12.9898, 78.233, 39.73))) * 43758.545);\n}\n\nfloat lerp(float a, float b, float t)\n{\n  return a * (1.0 - t) + b * t;\n}\n\nfloat cerp(float a, float b, float t) {\n  float cos_t = (1.0 - cos(t * M_PI)) * 0.5;\n  return a * (1.0 - cos_t) + b * cos_t;\n}\n\nfloat smooth(vec3 pos, float fq)\n{\n\tfloat r = 1.0 / fq;\n\treturn (noise_gen(pos + vec3(r, r, r)) + noise_gen(pos + vec3(- r, r, r))\n\t\t+ noise_gen(pos + vec3(r,- r, r)) + noise_gen(pos + vec3(- r,- r, r))\n\t\t+ noise_gen(pos + vec3(r, r,- r)) + noise_gen(pos + vec3(- r, r,- r))\n\t\t+ noise_gen(pos + vec3(r, - r,- r)) + noise_gen(pos + vec3(- r,- r,- r))) / 8.0;\n}\n\nfloat noise_interpolate(vec3 pos, float fq)\n{\n  pos *= 0.2;\n\n  vec3 a = vec3(floor(pos.x), ceil(pos.y), ceil(pos.z));\n  vec3 b = vec3(ceil(pos.x), ceil(pos.y), ceil(pos.z));\n  vec3 c = vec3(floor(pos.x), floor(pos.y), ceil(pos.z));\n  vec3 d = vec3(ceil(pos.x), floor(pos.y), ceil(pos.z));\n\n  vec3 e = vec3(floor(pos.x), ceil(pos.y), floor(pos.z));\n  vec3 f = vec3(ceil(pos.x), ceil(pos.y), floor(pos.z));\n  vec3 g = vec3(floor(pos.x), floor(pos.y), floor(pos.z));\n  vec3 h = vec3(ceil(pos.x), floor(pos.y), floor(pos.z));\n\n  float ab = cerp(smooth(a, fq), smooth(b, fq), fract(pos.x));\n  float cd = cerp(smooth(c, fq), smooth(d, fq), fract(pos.x));\n  float abcd = cerp(cd, ab, fract(pos.y));\n\n  float ef = cerp(smooth(e, fq), smooth(f, fq), fract(pos.x));\n  float gh = cerp(smooth(g, fq), smooth(h, fq), fract(pos.x));\n  float efgh = cerp(gh, ef, fract(pos.y));\n\n  return cerp(efgh, abcd, fract(pos.z));\n}\n\nfloat pnoise(vec3 pos)\n{\n\tfloat total = 0.0;\n\n\tfor (int i = 0; i < 16; ++i)\n\t{\n\t\tfloat fq = pow(2.0, float(i));\n\t\tfloat amplitude = pow(persistence, float(i));\n\n\t\ttotal += noise_interpolate(pos, fq) * amplitude;\n\t}\n\treturn total;\n}\n\nvoid main() {\n\tnoise = pnoise(position + vec3(time, time, time)) - 0.5;\n  float ampl = amplitude;\n  if (inclination != vec3(0, 0, 0)) {\n  ampl -= dot(normal, normalize(inclination)) * amplitude;\n  }\n\tvec3 p = position + noise * ampl * normalize(normal);\n\tgl_Position = projectionMatrix * modelViewMatrix * vec4( p, 1.0 );\n}"
+	'use strict';
+	
+	Object.defineProperty(exports, "__esModule", {
+	    value: true
+	});
+	
+	var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
+	
+	var _houseLsystem = __webpack_require__(9);
+	
+	var _houseLsystem2 = _interopRequireDefault(_houseLsystem);
+	
+	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+	
+	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+	
+	var THREE = __webpack_require__(6);
+	
+	
+	var ParserState = function ParserState(pos, dir, r) {
+	    return {
+	        pos: new THREE.Vector3(pos.x, pos.y, pos.z),
+	        dir: new THREE.Vector3(dir.x, dir.y, dir.z),
+	        radius: r
+	    };
+	};
+	
+	var Parser = function () {
+	    function Parser(position, direction, scene, iterations, radius) {
+	        _classCallCheck(this, Parser);
+	
+	        this.initPos = position;
+	        this.initDir = direction;
+	
+	        this.state = new ParserState(this.initPos, this.initDir, radius);
+	        this.stack = [];
+	
+	        this.scene = scene;
+	        this.totalIter = iterations;
+	
+	        this.renderGrammar = {
+	            'L': this.addLevel.bind(this),
+	            '[': this.saveState.bind(this),
+	            ']': this.applyState.bind(this),
+	            '0': this.shiftState.bind(this, 0),
+	            '1': this.shiftState.bind(this, 1),
+	            '2': this.shiftState.bind(this, 2),
+	            '3': this.shiftState.bind(this, 3),
+	            '4': this.shiftState.bind(this, 4),
+	            '5': this.shiftState.bind(this, 5),
+	            '6': this.shiftState.bind(this, 6),
+	            '7': this.shiftState.bind(this, 7),
+	            'r': this.decreaseRadius.bind(this)
+	        };
+	
+	        this.stdDir = [new THREE.Vector3(-1, 0, 1).normalize(), new THREE.Vector3(0, 0, 1), new THREE.Vector3(1, 0, 1).normalize(), new THREE.Vector3(1, 0, 0), new THREE.Vector3(1, 0, -1).normalize(), new THREE.Vector3(0, 0, -1), new THREE.Vector3(-1, 0, -1).normalize(), new THREE.Vector3(-1, 0, 0)];
+	    }
+	
+	    _createClass(Parser, [{
+	        key: 'saveState',
+	        value: function saveState() {
+	            var newState = new ParserState(this.state.pos, this.state.dir, this.state.radius);
+	            this.stack.push(newState);
+	        }
+	    }, {
+	        key: 'applyState',
+	        value: function applyState() {
+	            this.state = this.stack.pop();
+	        }
+	    }, {
+	        key: 'shiftState',
+	        value: function shiftState(posNum) {
+	
+	            var currR = this.state.radius;
+	
+	            var pos = this.state.pos;
+	            var newP = new THREE.Vector3(pos.x, pos.y, pos.z).addScaledVector(this.stdDir[posNum], 3 * currR / 4);
+	
+	            this.state.radius = currR / 4;
+	            this.state.pos = newP;
+	        }
+	    }, {
+	        key: 'decreaseRadius',
+	        value: function decreaseRadius() {
+	            this.state.radius *= 0.7;
+	        }
+	    }, {
+	        key: 'addLevel',
+	        value: function addLevel() {
+	            if (Math.random() > 0.5) {
+	                this.addCylinder();
+	            } else {
+	                this.addBox();
+	            }
+	        }
+	    }, {
+	        key: 'addCylinder',
+	        value: function addCylinder() {
+	            var currR = this.state.radius;
+	            var outerR = currR - Math.random() * currR / 2;
+	            var innerR = outerR - Math.random() * outerR / 2;
+	            this.state.radius = innerR;
+	
+	            var height = currR * 0.1 + Math.random() * Math.pow(this.currIdx, 0.25);
+	
+	            var color = new THREE.Color(Math.random(), Math.random(), Math.random());
+	
+	            var geom = new THREE.CylinderGeometry(innerR, outerR, height, 16);
+	            var material = new THREE.MeshLambertMaterial({ color: color });
+	            var cyl = new THREE.Mesh(geom, material);
+	
+	            var pos = this.state.pos;
+	            var dir = this.state.dir;
+	
+	            pos.addScaledVector(dir, height / 2);
+	            cyl.position.set(pos.x, pos.y, pos.z);
+	
+	            cyl.lookAt(pos.addScaledVector(dir, height / 2));
+	            cyl.rotateX(Math.PI / 2);
+	
+	            this.scene.add(cyl);
+	        }
+	    }, {
+	        key: 'addBox',
+	        value: function addBox() {
+	            var currR = this.state.radius;
+	            var width = currR - Math.random() * currR / 2;
+	            var depth = currR - Math.random() * currR / 2;
+	            this.state.radius = Math.min(width, depth) / 2;
+	
+	            var height = currR * 0.1 + Math.random() * Math.pow(this.currIdx, 0.25);
+	
+	            var color = new THREE.Color(Math.random(), Math.random(), Math.random());
+	
+	            var geom = new THREE.BoxGeometry(width, height, depth);
+	            var material = new THREE.MeshLambertMaterial({ color: color });
+	            var box = new THREE.Mesh(geom, material);
+	
+	            var pos = this.state.pos;
+	            var dir = this.state.dir;
+	
+	            pos.addScaledVector(dir, height / 2);
+	            box.position.set(pos.x, pos.y, pos.z);
+	
+	            box.lookAt(pos.addScaledVector(dir, height / 2));
+	            box.rotateX(Math.PI / 2);
+	
+	            this.scene.add(box);
+	        }
+	    }, {
+	        key: 'renderSymbol',
+	        value: function renderSymbol(symbolNode) {
+	            var func = this.renderGrammar[symbolNode.symbol];
+	            if (func) {
+	                func();
+	            }
+	        }
+	    }, {
+	        key: 'renderSymbols',
+	        value: function renderSymbols(linkedList) {
+	            if (!linkedList) {
+	                console.log("Cant find house");
+	                return;
+	            }
+	            this.currIdx = 0;
+	            for (var currentNode = linkedList.head; currentNode != null; currentNode = currentNode.next) {
+	                this.renderSymbol(currentNode);
+	                this.currIdx++;
+	            }
+	        }
+	    }, {
+	        key: 'render',
+	        value: function render() {
+	            var house = new _houseLsystem2.default();
+	            this.renderSymbols(house.doIterations(this.totalIter));
+	        }
+	    }]);
+	
+	    return Parser;
+	}();
+	
+	exports.default = Parser;
 
-/***/ },
+/***/ }),
 /* 9 */
-/***/ function(module, exports) {
+/***/ (function(module, exports, __webpack_require__) {
 
-	module.exports = "varying float noise;\nuniform sampler2D image;\n\nvoid main() {\n\tvec4 color = texture2D( image, vec2(1, noise));\n\tgl_FragColor = vec4( color.rgb, 1.0 );\n}"
+	"use strict";
+	
+	Object.defineProperty(exports, "__esModule", {
+	    value: true
+	});
+	exports.stringToLinkedList = stringToLinkedList;
+	exports.linkedListToString = linkedListToString;
+	exports.default = House;
+	var THREE = __webpack_require__(6);
+	function Rule(prob, str) {
+	    this.probability = prob;
+	    this.successorString = str;
+	}
+	
+	function Node(symbol, iter) {
+	    this.next = null;
+	    this.prev = null;
+	    this.symbol = symbol;
+	    this.iter = iter;
+	}
+	
+	function LinkedList(pos) {
+	    this.head = null;
+	    this.length = 0;
+	    this.scale = new THREE.Vector3(1.0, 1.0, 1.0);
+	    this.position = new THREE.Vector3(0, 0, 0);
+	    if (pos) {
+	        this.position = pos;
+	    }
+	}
+	
+	LinkedList.prototype.getTailNode = function () {
+	    var currentNode = this.head;
+	    while (currentNode.next != null) {
+	        currentNode = currentNode.next;
+	    }
+	    return currentNode;
+	};
+	
+	LinkedList.prototype.add = function (symbol, iter) {
+	    var node = new Node(symbol, iter);
+	    var currentNode = this.head;
+	    if (currentNode == null) {
+	        this.head = node;
+	        this.length = 1;
+	        return;
+	    }
+	    var tail = this.getTailNode();
+	    this.link(tail, node);
+	    this.length++;
+	};
+	
+	LinkedList.prototype.link = function (first, second) {
+	    if (first != null) {
+	        first.next = second;
+	        if (second != null) {
+	            second.prev = first;
+	        }
+	    }
+	};
+	
+	function stringToLinkedList(input_string, iter) {
+	    var ll = new LinkedList();
+	    for (var i = 0; i < input_string.length; i++) {
+	        ll.add(input_string[i], iter);
+	    }
+	    return ll;
+	}
+	
+	function linkedListToString(linkedList) {
+	    var result = "";
+	    var currentNode = linkedList.head;
+	    while (currentNode != null) {
+	        result += currentNode.symbol;
+	        currentNode = currentNode.next;
+	    }
+	    return result;
+	}
+	
+	function replaceNode(linkedList, node, replacementString, iter) {
+	
+	    var nodeBefore = node.prev;
+	    var nodeAfter = node.next;
+	
+	    var stringList = stringToLinkedList(replacementString, iter);
+	    var tail = stringList.getTailNode();
+	
+	    if (nodeBefore == null && nodeAfter == null) {
+	        linkedList.head = stringList.head;
+	    } else if (nodeBefore == null) {
+	        linkedList.head = stringList.head;
+	        linkedList.link(tail, nodeAfter);
+	    } else if (nodeAfter == null) {
+	        linkedList.link(nodeBefore, stringList.head);
+	    } else {
+	        linkedList.link(nodeBefore, stringList.head);
+	        linkedList.link(tail, nodeAfter);
+	    }
+	
+	    linkedList.length += replacementString.length - 1;
+	    return linkedList;
+	}
+	
+	function House() {
+	    this.axiom = "X";
+	    this.grammar = {};
+	    this.grammar['X'] = [new Rule(0.5, 'LX'), new Rule(0.25, 'LS'), new Rule(0.25, 'LSrX')];
+	    this.grammar['S'] = [new Rule(0.35, 'D'), new Rule(0.25, 'T'), new Rule(0.25, 'Q'), new Rule(0.15, '[0LX][1LX][2LX][3LX][4LX][5LX][6LX][7LX]')];
+	    this.grammar['D'] = [new Rule(0.04, '[0LX][1LX]'), new Rule(0.04, '[0LX][2LX]'), new Rule(0.04, '[0LX][3LX]'), new Rule(0.04, '[0LX][4LX]'), new Rule(0.04, '[0LX][5LX]'), new Rule(0.04, '[0LX][6LX]'), new Rule(0.04, '[0LX][7LX]'), new Rule(0.04, '[1LX][2LX]'), new Rule(0.04, '[1LX][3LX]'), new Rule(0.04, '[1LX][4LX]'), new Rule(0.04, '[1LX][5LX]'), new Rule(0.04, '[1LX][6LX]'), new Rule(0.04, '[1LX][7LX]'), new Rule(0.04, '[2LX][3LX]'), new Rule(0.04, '[2LX][4LX]'), new Rule(0.04, '[2LX][5LX]'), new Rule(0.04, '[2LX][6LX]'), new Rule(0.04, '[2LX][7LX]'), new Rule(0.04, '[3LX][4LX]'), new Rule(0.04, '[3LX][5LX]'), new Rule(0.04, '[3LX][6LX]'), new Rule(0.04, '[3LX][7LX]'), new Rule(0.04, '[4LX][5LX]'), new Rule(0.04, '[4LX][6LX]'), new Rule(0.04, '[4LX][7LX]'), new Rule(0.04, '[5LX][6LX]'), new Rule(0.04, '[5LX][7LX]'), new Rule(0.04, '[6LX][7LX]')];
+	    this.grammar['T'] = [new Rule(0.028, '[0LX][1LX][2LX]'), new Rule(0.028, '[0LX][1LX][3LX]'), new Rule(0.028, '[0LX][1LX][4LX]'), new Rule(0.028, '[0LX][1LX][5LX]'), new Rule(0.028, '[0LX][1LX][6LX]'), new Rule(0.028, '[0LX][1LX][7LX]'), new Rule(0.028, '[0LX][2LX][3LX]'), new Rule(0.028, '[0LX][2LX][4LX]'), new Rule(0.028, '[0LX][2LX][5LX]'), new Rule(0.028, '[0LX][2LX][6LX]'), new Rule(0.028, '[0LX][2LX][7LX]'), new Rule(0.028, '[0LX][3LX][4LX]'), new Rule(0.028, '[0LX][3LX][5LX]'), new Rule(0.028, '[0LX][3LX][6LX]'), new Rule(0.028, '[0LX][3LX][7LX]'), new Rule(0.028, '[0LX][4LX][5LX]'), new Rule(0.028, '[0LX][4LX][6LX]'), new Rule(0.028, '[0LX][4LX][7LX]'), new Rule(0.028, '[0LX][5LX][6LX]'), new Rule(0.028, '[0LX][5LX][7LX]'), new Rule(0.028, '[0LX][6LX][7LX]'), new Rule(0.028, '[1LX][2LX][3LX]'), new Rule(0.028, '[1LX][2LX][4LX]'), new Rule(0.028, '[1LX][2LX][5LX]'), new Rule(0.028, '[1LX][2LX][6LX]'), new Rule(0.028, '[1LX][2LX][7LX]'), new Rule(0.028, '[1LX][3LX][4LX]'), new Rule(0.028, '[1LX][3LX][5LX]'), new Rule(0.028, '[1LX][3LX][6LX]'), new Rule(0.028, '[1LX][3LX][7LX]'), new Rule(0.028, '[1LX][4LX][5LX]'), new Rule(0.028, '[1LX][4LX][6LX]'), new Rule(0.028, '[1LX][4LX][7LX]'), new Rule(0.028, '[1LX][5LX][6LX]'), new Rule(0.028, '[1LX][5LX][7LX]'), new Rule(0.028, '[1LX][6LX][7LX]'), new Rule(0.028, '[2LX][3LX][4LX]'), new Rule(0.028, '[2LX][3LX][5LX]'), new Rule(0.028, '[2LX][3LX][6LX]'), new Rule(0.028, '[2LX][3LX][7LX]'), new Rule(0.028, '[2LX][4LX][5LX]'), new Rule(0.028, '[2LX][4LX][6LX]'), new Rule(0.028, '[2LX][4LX][7LX]'), new Rule(0.028, '[2LX][5LX][6LX]'), new Rule(0.028, '[2LX][5LX][7LX]'), new Rule(0.028, '[2LX][6LX][7LX]'), new Rule(0.028, '[3LX][4LX][5LX]'), new Rule(0.028, '[3LX][4LX][6LX]'), new Rule(0.028, '[3LX][4LX][7LX]'), new Rule(0.028, '[3LX][5LX][6LX]'), new Rule(0.028, '[3LX][5LX][7LX]'), new Rule(0.028, '[3LX][6LX][7LX]'), new Rule(0.028, '[4LX][5LX][6LX]'), new Rule(0.028, '[4LX][5LX][7LX]'), new Rule(0.028, '[4LX][6LX][7LX]'), new Rule(0.028, '[5LX][6LX][7LX]')];
+	    this.grammar['Q'] = [new Rule(0.028, '[0LX][1LX][2LX][3LX]'), new Rule(0.028, '[0LX][1LX][2LX][4LX]'), new Rule(0.028, '[0LX][1LX][2LX][5LX]'), new Rule(0.028, '[0LX][1LX][2LX][6LX]'), new Rule(0.028, '[0LX][1LX][2LX][7LX]'), new Rule(0.028, '[0LX][1LX][3LX][4LX]'), new Rule(0.028, '[0LX][1LX][3LX][5LX]'), new Rule(0.028, '[0LX][1LX][3LX][6LX]'), new Rule(0.028, '[0LX][1LX][3LX][7LX]'), new Rule(0.028, '[0LX][1LX][4LX][5LX]'), new Rule(0.028, '[0LX][1LX][5LX][6LX]'), new Rule(0.028, '[0LX][1LX][5LX][7LX]'), new Rule(0.028, '[0LX][1LX][6LX][7LX]'), new Rule(0.028, '[0LX][2LX][3LX][4LX]'), new Rule(0.028, '[0LX][2LX][3LX][5LX]'), new Rule(0.028, '[0LX][2LX][3LX][6LX]'), new Rule(0.028, '[0LX][2LX][3LX][7LX]'), new Rule(0.028, '[0LX][2LX][4LX][5LX]'), new Rule(0.028, '[0LX][2LX][4LX][6LX]'), new Rule(0.028, '[0LX][2LX][4LX][7LX]'), new Rule(0.028, '[0LX][2LX][5LX][6LX]'), new Rule(0.028, '[0LX][2LX][5LX][7LX]'), new Rule(0.028, '[0LX][2LX][6LX][7LX]'), new Rule(0.028, '[0LX][3LX][4LX][5LX]'), new Rule(0.028, '[0LX][3LX][4LX][6LX]'), new Rule(0.028, '[0LX][3LX][4LX][7LX]'), new Rule(0.028, '[0LX][3LX][5LX][6LX]'), new Rule(0.028, '[0LX][3LX][5LX][7LX]'), new Rule(0.028, '[0LX][3LX][6LX][7LX]'), new Rule(0.028, '[0LX][4LX][5LX][6LX]'), new Rule(0.028, '[0LX][4LX][5LX][7LX]'), new Rule(0.028, '[0LX][4LX][6LX][7LX]'), new Rule(0.028, '[0LX][5LX][6LX][7LX]'), new Rule(0.028, '[1LX][2LX][3LX][4LX]'), new Rule(0.028, '[1LX][2LX][3LX][5LX]'), new Rule(0.028, '[1LX][2LX][3LX][6LX]'), new Rule(0.028, '[1LX][2LX][3LX][7LX]'), new Rule(0.028, '[1LX][2LX][4LX][5LX]'), new Rule(0.028, '[1LX][2LX][4LX][6LX]'), new Rule(0.028, '[1LX][2LX][4LX][7LX]'), new Rule(0.028, '[1LX][2LX][5LX][6LX]'), new Rule(0.028, '[1LX][2LX][5LX][7LX]'), new Rule(0.028, '[1LX][2LX][6LX][7LX]'), new Rule(0.028, '[1LX][3LX][4LX][5LX]'), new Rule(0.028, '[1LX][3LX][4LX][6LX]'), new Rule(0.028, '[1LX][3LX][4LX][7LX]'), new Rule(0.028, '[1LX][3LX][5LX][6LX]'), new Rule(0.028, '[1LX][3LX][5LX][7LX]'), new Rule(0.028, '[1LX][3LX][6LX][7LX]'), new Rule(0.028, '[1LX][4LX][5LX][6LX]'), new Rule(0.028, '[1LX][4LX][5LX][7LX]'), new Rule(0.028, '[1LX][4LX][6LX][7LX]'), new Rule(0.028, '[1LX][5LX][6LX][7LX]'), new Rule(0.028, '[2LX][3LX][4LX][5LX]'), new Rule(0.028, '[2LX][3LX][4LX][6LX]'), new Rule(0.028, '[2LX][3LX][4LX][7LX]'), new Rule(0.028, '[2LX][3LX][5LX][6LX]'), new Rule(0.028, '[2LX][3LX][5LX][7LX]'), new Rule(0.028, '[2LX][3LX][6LX][7LX]'), new Rule(0.028, '[2LX][4LX][5LX][6LX]'), new Rule(0.028, '[2LX][4LX][5LX][7LX]'), new Rule(0.028, '[2LX][4LX][6LX][7LX]'), new Rule(0.028, '[2LX][5LX][6LX][7LX]'), new Rule(0.028, '[3LX][4LX][5LX][6LX]'), new Rule(0.028, '[3LX][4LX][5LX][7LX]'), new Rule(0.028, '[3LX][4LX][6LX][7LX]'), new Rule(0.028, '[4LX][5LX][6LX][7LX]')];
+	
+	    this.updateAxiom = function (axiom) {
+	        if (typeof axiom !== "undefined") {
+	            this.axiom = axiom;
+	        }
+	    };
+	
+	    this.updateGrammar = function (rule) {
+	        if (typeof axiom !== "undefined") {
+	            this.axiom = axiom;
+	        }
+	    };
+	
+	    this.doIterations = function (n) {
+	        var lSystemLL = stringToLinkedList(this.axiom, 0);
+	        lSystemLL.position = this.position;
+	        for (var i = 0; i < n; i++) {
+	            var currentNode = lSystemLL.head;
+	
+	            while (currentNode != null) {
+	                var next = currentNode.next;
+	                var symbol = currentNode.symbol;
+	                var iter = currentNode.iter;
+	
+	                if (this.grammar[symbol]) {
+	                    var rand = Math.random();
+	                    var sum = 0.0;
+	                    var rules = this.grammar[symbol];
+	                    for (var j = 0; j < rules.length; j++) {
+	                        sum += rules[j].probability;
+	                        if (rand <= sum) {
+	                            replaceNode(lSystemLL, currentNode, rules[j].successorString, i + 1);
+	                            break;
+	                        }
+	                    }
+	                }
+	                currentNode = next;
+	            }
+	        }
+	        return lSystemLL;
+	    };
+	}
 
-/***/ }
+/***/ })
 /******/ ]);
 //# sourceMappingURL=bundle.js.map
