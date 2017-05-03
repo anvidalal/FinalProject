@@ -180,6 +180,7 @@ export default function House() {
                 currentNode = next;
             }
         }
+        this.axiom = linkedListToString(lSystemLL);
         return lSystemLL;
     }
 }

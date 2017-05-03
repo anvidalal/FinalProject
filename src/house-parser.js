@@ -11,7 +11,7 @@ var ParserState = function(pos, dir, r) {
   
 export default class Parser {
     
-    constructor(position, direction, scene, iterations, radius) {
+    constructor(position, direction, scene, radius) {
         this.initPos = position;
         this.initDir = direction;
 
@@ -19,7 +19,12 @@ export default class Parser {
         this.stack = [];
 
         this.scene = scene;
-        this.totalIter = iterations;
+
+        this.house = new House();
+
+        this.objs = [];
+
+        this.idxCtr = 0;
 
         this.renderGrammar = {
             'L' : this.addLevel.bind(this),
@@ -45,7 +50,9 @@ export default class Parser {
         new THREE.Vector3(0, 0, -1),
         new THREE.Vector3(-1, 0, -1).normalize(),
         new THREE.Vector3(-1, 0, 0)          
-    ];
+        ];
+
+        this.renderSymbols(this.house.doIterations(5));
     }
 
     saveState() {
@@ -104,7 +111,9 @@ export default class Parser {
         cyl.lookAt(pos.addScaledVector(dir, height / 2));
         cyl.rotateX(Math.PI / 2);
 
-        this.scene.add(cyl);
+        this.objs.push({index: this.currIdx, object: cyl});
+
+        //this.scene.add(cyl);
     }
 
     addBox() {
@@ -130,7 +139,9 @@ export default class Parser {
         box.lookAt(pos.addScaledVector(dir, height / 2));
         box.rotateX(Math.PI / 2);
 
-        this.scene.add(box);
+        this.objs.push({index: this.currIdx, object: box});
+
+        //this.scene.add(box);
     }
 
     renderSymbol(symbolNode) {
@@ -149,12 +160,39 @@ export default class Parser {
         for(var currentNode = linkedList.head; currentNode != null; currentNode = currentNode.next) 
         {
             this.renderSymbol(currentNode);
-            this.currIdx++;
+            this.currIdx = currentNode.iter;
         }
     }
 
-    render() {
-        var house = new House();
-        this.renderSymbols(house.doIterations(this.totalIter));
+    render(iterations) {
+
+        if (iterations > this.idxCtr)
+        {
+            for (var i = this.idxCtr; i < iterations; i++)
+            {
+                for (var j = 0; j < this.objs.length; j++)
+                {
+                    if (this.objs[j].index == i)
+                    {
+                        this.scene.add(this.objs[j].object);
+                    }
+                }
+            }
+        }
+
+        else if (iterations < this.idxCtr)
+        {
+            for (var i = this.idxCtr; i >= iterations; i--)
+            {
+                for (var j = 0; j < this.objs.length; j++)
+                {
+                    if (this.objs[j].index == i)
+                    {
+                        this.scene.remove(this.objs[j].object);
+                    }
+                }
+            }
+        }
+        this.idxCtr = iterations;
     }
 }
