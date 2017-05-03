@@ -151,7 +151,7 @@ function addMusic(scene, camera) {
 }
 
 function onUpdate(framework) {
-  currTime = Date.now() - startTime;
+ currTime = Date.now() - startTime;
 
   var t = currTime / 10000;
 
@@ -163,10 +163,9 @@ function onUpdate(framework) {
   {
     settings.bulgeSpeaker = true;
     rotateCam(framework.camera, 100, t, 10);
-  }
+  } 
   else if (t < 2.1)
   {
-    settings.bulgeSpeaker = false;
     framework.camera.fov = 75;
     settings.varyIter = true;
   }
@@ -175,7 +174,7 @@ function onUpdate(framework) {
     rotateCam(framework.camera, 100, t, 30);
   }
   else if (t < 5)
-  {
+  {    
     settings.bulgeSpeaker = false;
     framework.camera.fov = 75;
     rotateCam(framework.camera, 60, - t, 30);
@@ -186,7 +185,6 @@ function onUpdate(framework) {
     framework.camera.lookAt(new THREE.Vector3(0, 0, 0));
     settings.bulgeSpeaker = true;
   }
-
   var r = Math.random();
 
   if (audioAnalyser) {
