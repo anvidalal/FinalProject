@@ -59,20 +59,20 @@ Submit fully working visualizer.
 
 I designed shape grammar such that it starts with a &quot;level&quot; (can be either box of dimensions greater than half of or equal to given radius or cylinder of bottom radius greater than half of or equal to given radius and top radius greater than half of or equal to bottom radius, of random color) and a variable that changes in next iteration to either place the next level in the center on top of the last one, choose between placing two, three, four or eight smaller subdivisions in random positions on the last level, or both. I then also saved my objects so that iteration changes don&#39;t change the shape, color and size.
 
-<img src="shape1.png" width="100"> <img src="shape2.png" width="100"> <img src="shape3.png" width="100">
-<img src="shape4.png" width="100"> <img src="shape5.png" width="100"> <img src="shape6.png" width="100">
+<img src="shape1.png" width="200"> <img src="shape2.png" width="200"> <img src="shape3.png" width="200">
+<img src="shape4.png" width="200"> <img src="shape5.png" width="200"> <img src="shape6.png" width="200">
 
 **Music dependent features**
 
 The music dependent features on my visualizer include a shader that changes the color of the cylinders laid out on the speaker based on perlin noise using a color palette, background that changes using a cosine based palette, an increase or decrease in the camera fov to give a bulging effect and iterations in the shape grammar. All of these take in the average frequency at current time of the music file.
 
-<img src="changeColor.gif" width="200"> <img src="backgroundColor.gif" width="200"> 
-<img src="cameraBulge.gif" width="200"> <img src="varyIter.gif" width="200">
+<img src="changeColor.gif" width="400"> <img src="backgroundColor.gif" width="400"> 
+<img src="cameraBulge.gif" width="400"> <img src="varyIter.gif" width="400">
 
 **Camera Animation**
 
 The camera movement is hard-coded to showcase all the features of my visualizer. These movements include rotation along the xz plane in different radii and and zoomed in rotation to show the shape grammar develop.
-<img src="rotateCam.gif" width="200"> <img src="zoomedInCam.gif" width="200"> 
+<img src="rotateCam.gif" width="400"> <img src="zoomedInCam.gif" width="400"> 
 
 # Evaluation
 My speaker turned out to be mostly what I expected. I was able to achieve the look and feel that I wanted from the visualizer.
