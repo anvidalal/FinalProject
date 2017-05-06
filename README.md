@@ -59,8 +59,8 @@ Submit fully working visualizer.
 
 I designed shape grammar such that it starts with a &quot;level&quot; (can be either box of dimensions greater than half of or equal to given radius or cylinder of bottom radius greater than half of or equal to given radius and top radius greater than half of or equal to bottom radius, of random color) and a variable that changes in next iteration to either place the next level in the center on top of the last one, choose between placing two, three, four or eight smaller subdivisions in random positions on the last level, or both. I then also saved my objects so that iteration changes don&#39;t change the shape, color and size.
 
-<img src="shape1.png" width="200"> <img src="shape2.png" width="200"> <img src="shape3.png" width="200">
-<img src="shape4.png" width="200"> <img src="shape5.png" width="200"> <img src="shape6.png" width="200">
+<img src="shape1.png" width="250"> <img src="shape2.png" width="250"> <img src="shape3.png" width="250">
+<img src="shape4.png" width="250"> <img src="shape5.png" width="250"> <img src="shape6.png" width="250">
 
 **Music dependent features**
 
