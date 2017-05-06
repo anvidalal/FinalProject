@@ -2,7 +2,7 @@
 
 # Design Document
 
-<img src="zoom1.png" width="500">
+<img src="zoom1.png" width="400">
 
 # Introduction
 My Music Visualizer is a procedurally generated speaker that shows interesting graphics tuned to a music track. With different camera views, varied colors and shape grammar iterations, the visualizer makes music more dynamic.
@@ -13,7 +13,7 @@ My goal is to produce a demo choreographed to a music track to show various visu
 # Inspiration / Reference
 I was inspired by the JBL Pulse 2, a portable speaker that visualizes the sound it plays with interactive lights. It has a cylindrical body and lights all around the surface that light up in different colors to while playing music.
 
-<img src="jbl.png" width="500">
+<img src="jbl.png" width="400">
 
 I wanted my visualizer to have a similar feel, but at the same time, achieve a look that is hard to replicate in real life. So, I wanted to use shape grammar to produce interesting shapes that will be laid out in place of the lights and iterate them based on music.
 
@@ -34,7 +34,7 @@ The main technical tools I use are as follows –
 # Design
 Here is a diagram of how I planned to design my visualizer.
 
-<img src="framework.png" width="1000">
+<img src="framework.png" width="800">
 
 # Timeline 
 **Week 1**
@@ -59,20 +59,20 @@ Submit fully working visualizer.
 
 I designed shape grammar such that it starts with a &quot;level&quot; (can be either box of dimensions greater than half of or equal to given radius or cylinder of bottom radius greater than half of or equal to given radius and top radius greater than half of or equal to bottom radius, of random color) and a variable that changes in next iteration to either place the next level in the center on top of the last one, choose between placing two, three, four or eight smaller subdivisions in random positions on the last level, or both. I then also saved my objects so that iteration changes don&#39;t change the shape, color and size.
 
-<img src="shape1.png" width="500"> <img src="shape2.png" width="500"> <img src="shape3.png" width="500">
-<img src="shape4.png" width="500"> <img src="shape5.png" width="500"> <img src="shape6.png" width="500">
+<img src="shape1.png" width="100"> <img src="shape2.png" width="100"> <img src="shape3.png" width="100">
+<img src="shape4.png" width="100"> <img src="shape5.png" width="100"> <img src="shape6.png" width="100">
 
 **Music dependent features**
 
 The music dependent features on my visualizer include a shader that changes the color of the cylinders laid out on the speaker based on perlin noise using a color palette, background that changes using a cosine based palette, an increase or decrease in the camera fov to give a bulging effect and iterations in the shape grammar. All of these take in the average frequency at current time of the music file.
 
-<img src="changeColor.gif" width="500"> <img src="backgroundColor.gif" width="500"> 
-<img src="cameraBulge.gif" width="500"> <img src="varyIter.gif" width="500">
+<img src="changeColor.gif" width="200"> <img src="backgroundColor.gif" width="200"> 
+<img src="cameraBulge.gif" width="200"> <img src="varyIter.gif" width="200">
 
 **Camera Animation**
 
 The camera movement is hard-coded to showcase all the features of my visualizer. These movements include rotation along the xz plane in different radii and and zoomed in rotation to show the shape grammar develop.
-<img src="rotateCam.gif" width="500"> <img src="zoomedInCam.gif" width="500"> 
+<img src="rotateCam.gif" width="200"> <img src="zoomedInCam.gif" width="200"> 
 
 # Evaluation
 My speaker turned out to be mostly what I expected. I was able to achieve the look and feel that I wanted from the visualizer.
