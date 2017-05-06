@@ -34,7 +34,7 @@ The main technical tools I use are as follows –
 # Design
 Here is a diagram of how I planned to design my visualizer.
 
-<img src="framework.png" width="800">
+<img src="framework.png" width="500">
 
 # Timeline 
 **Week 1**
